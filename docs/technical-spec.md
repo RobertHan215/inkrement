@@ -215,7 +215,19 @@ model SmsCode {
 
 ## 四、认证与权限
 
-### 4.1 登录流程
+### 4.1 开发模式认证（Dev Auth Bypass）
+
+> Phase 1-4 使用此方案，Phase 5 替换为正式短信认证。
+
+```
+开发模式（NODE_ENV=development）：
+1. Seed 脚本预创建 3 个测试用户（学生/家长/管理员）
+2. getCurrentUser() 直接返回 Seed 学生用户，无需登录
+3. 路由守卫 Middleware 在开发模式下跳过认证校验
+4. 可通过 URL 参数切换用户角色：?role=parent 或 ?role=admin
+```
+
+### 4.2 正式登录流程（Phase 5 实现）
 
 ```
 1. 用户输入手机号 → 点击"获取验证码"
@@ -227,7 +239,7 @@ model SmsCode {
 7. 签发 JWT Token（有效期 30 天，自动续期）
 ```
 
-### 4.2 权限控制
+### 4.3 权限控制
 
 | 角色 | 权限范围 |
 |------|----------|
@@ -235,7 +247,7 @@ model SmsCode {
 | parent | 已关联孩子的所有训练数据（只读） |
 | admin | 全部功能 + 后台管理 UI |
 
-### 4.3 邀请码机制
+### 4.4 邀请码机制
 
 - 学生账号自动生成唯一 6 位邀请码（大写字母 + 数字）
 - 家长输入邀请码后关联，一个家长可关联多个孩子
@@ -531,10 +543,10 @@ R2_PUBLIC_URL=""                # 公开访问域名
 - [x] 数据库：SQLite + Prisma
 - [x] 包管理器：pnpm
 - [x] Node.js 版本：20 LTS
-- [x] 认证方案：NextAuth.js + 手机号短信验证码
-- [x] 短信服务：阿里云短信 SMS
+- [x] 认证方案：Phase 1-4 Dev Auth Bypass → Phase 5 NextAuth.js + 短信验证码
+- [x] 短信服务：阿里云短信 SMS（Phase 5 实现）
 - [x] 图片存储：Cloudflare R2
-- [x] 部署服务器：阿里云轻量服务器（香港）免备案
+- [x] 部署服务器：阿里云轻量服务器（香港）免备案（Phase 5 部署）
 - [x] 操作系统：Ubuntu 22.04 LTS
 - [x] 进程管理：PM2
 - [x] 反向代理：Nginx + Let's Encrypt
@@ -549,6 +561,97 @@ R2_PUBLIC_URL=""                # 公开访问域名
 - [x] 拍照上传压缩：最大 2MB
 - [x] 每日任务生成：学生打开主页时按需创建
 - [x] 图表库：Recharts
+- [x] 域名注册方案：见附录 A
+
+---
+
+## 附录 A：免备案域名注册指南
+
+> 由于服务器选择阿里云**香港节点**，无需 ICP 备案。域名可在任意注册商购买后直接使用。
+
+### A.1 域名注册商推荐
+
+| 注册商 | 特点 | 价格参考（.com） | 推荐理由 |
+|--------|------|-------------------|----------|
+| **Cloudflare Registrar** | 零加价（成本价）、自带 DNS + CDN | ~¥60/年 | 💡 **首选**：价格最低 + 自带强大 DNS |
+| Namecheap | 老牌国际注册商，首年优惠大 | ~¥50/年（首年） | 备选：WhoisGuard 免费隐私保护 |
+| 阿里云万网 | 国内注册商，中文界面 | ~¥69/年 | 若已有阿里云账号，管理方便 |
+| Dynadot | 界面简洁，价格适中 | ~¥55/年 | 备选 |
+
+> [!TIP]
+> **推荐 Cloudflare Registrar**：成本价注册域名（无加价），自带免费 DNS 解析 + CDN + DDoS 防护。
+> 注册地址：[dash.cloudflare.com](https://dash.cloudflare.com)
+
+### A.2 域名选择建议
+
+| 后缀 | 说明 | 是否需备案 |
+|------|------|------------|
+| `.com` | 最通用，建议首选 | 香港服务器不需要 |
+| `.net` | 备选 | 香港服务器不需要 |
+| `.app` | Google 推出，强制 HTTPS | 香港服务器不需要 |
+| `.cn` | 中国域名，**必须实名认证** | 必须备案（不推荐） |
+
+建议域名：`inkrement.com` / `inkrement.app` / `inkrement.net`
+
+### A.3 DNS 配置步骤
+
+以 Cloudflare 为例（其他注册商类似）：
+
+```
+步骤 1：在 Cloudflare 注册并购买域名（或将已有域名转入）
+步骤 2：进入 DNS 管理页面
+步骤 3：添加 A 记录
+
+  类型: A
+  名称: @               ← 主域名（inkrement.com）
+  内容: <服务器公网 IP>
+  代理: 开启（橙色云图标，启用 CDN）
+  TTL:  Auto
+
+步骤 4：添加 www 子域名（可选）
+
+  类型: CNAME
+  名称: www
+  内容: inkrement.com
+  代理: 开启
+
+步骤 5：等待 DNS 生效（通常 1-5 分钟）
+步骤 6：在浏览器访问域名验证
+```
+
+### A.4 SSL/HTTPS 配置
+
+| 方案 | 说明 |
+|------|------|
+| **使用 Cloudflare 代理** | Cloudflare 自动提供 SSL 证书，无需服务器端配置。在 SSL/TLS 设置中选择 "Full (Strict)" 模式 |
+| **不使用 Cloudflare 代理** | 在服务器上使用 Certbot 申请 Let's Encrypt 免费证书 |
+
+Certbot 命令参考：
+
+```bash
+# 安装 Certbot
+sudo apt install certbot python3-certbot-nginx
+
+# 申请证书（自动配置 Nginx）
+sudo certbot --nginx -d inkrement.com -d www.inkrement.com
+
+# 自动续签（crontab，已由 certbot 自动配置）
+sudo certbot renew --dry-run
+```
+
+### A.5 完整流程总结
+
+```
+1. 在 Cloudflare 注册账号并购买域名（约 ¥60/年）
+2. 购买阿里云香港轻量服务器，获得公网 IP
+3. 在 Cloudflare DNS 添加 A 记录 → 指向服务器 IP
+4. 开启 Cloudflare 代理（自动获得 HTTPS + CDN）
+5. 在服务器 Nginx 中配置域名
+6. 访问 https://inkrement.com 验证
+```
+
+> [!NOTE]
+> 全程无需 ICP 备案，注册到可访问最快 **30 分钟内完成**。
 
 ---
 
