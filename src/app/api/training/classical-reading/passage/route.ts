@@ -33,42 +33,45 @@ export async function POST(req: NextRequest) {
         const user = await getCurrentUser("student");
         const grade = user.grade || "预初";
 
-        // 1. 查找今日计划，检查是否有缓存
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const MODULE = "classical_reading";
 
-        const plan = await prisma.trainingPlan.findUnique({
+        // 1. 查找或创建今日计划
+        let plan = await prisma.trainingPlan.findUnique({
             where: {
                 studentId_date_module: {
-                    studentId: user.id,
-                    date: today,
-                    module: "classical_reading",
+                    studentId: user.id, date: today, module: MODULE,
                 },
             },
         });
 
+        if (!plan) {
+            plan = await prisma.trainingPlan.create({
+                data: { studentId: user.id, date: today, module: MODULE, status: "pending" },
+            });
+        }
+
         // 2. 有缓存 → 直接返回
-        if (plan?.aiContent) {
+        if (plan.aiContent) {
             try {
                 const cached = JSON.parse(plan.aiContent);
                 return NextResponse.json({ passage: cached, cached: true });
             } catch {
-                // 缓存解析失败，继续走 AI 生成
+                // 缓存损坏，重新生成
             }
         }
 
         // 3. 调用 AI 生成
-        const provider = await getProviderForModule("classical_reading");
+        const provider = await getProviderForModule(MODULE);
         const messages = getClassicalReadingPrompt(grade);
         const passage = await provider.structuredChat(messages, PassageSchema);
 
         // 4. 存入 DB 缓存
-        if (plan) {
-            await prisma.trainingPlan.update({
-                where: { id: plan.id },
-                data: { aiContent: JSON.stringify(passage) },
-            });
-        }
+        await prisma.trainingPlan.update({
+            where: { id: plan.id },
+            data: { aiContent: JSON.stringify(passage) },
+        });
 
         return NextResponse.json({ passage });
     } catch (error) {
@@ -91,30 +94,22 @@ export async function POST(req: NextRequest) {
                     ],
                     questions: [
                         {
-                            id: 1,
-                            type: "word_explain",
+                            id: 1, type: "word_explain",
                             question: '解释"斯是陋室，惟吾德馨"中"馨"的含义。',
                             answer: "馨：散布很远的香气，这里指品德高尚。",
-                            analysis:
-                                '"馨"的本义是香气，在这里是比喻义，用来形容品德的高尚，就像香气一样让人感到美好。',
+                            analysis: '"馨"的本义是香气，在这里是比喻义，用来形容品德的高尚，就像香气一样让人感到美好。',
                         },
                         {
-                            id: 2,
-                            type: "sentence_translate",
+                            id: 2, type: "sentence_translate",
                             question: '翻译"苔痕上阶绿，草色入帘青。"',
-                            answer:
-                                "苔藓的痕迹蔓延到台阶上，使台阶变绿了；草的颜色映入门帘，使门帘也显得青翠。",
-                            analysis:
-                                '注意"上"和"入"是动词，表示苔痕向上蔓延、草色映入的动态之美。',
+                            answer: "苔藓的痕迹蔓延到台阶上，使台阶变绿了；草的颜色映入门帘，使门帘也显得青翠。",
+                            analysis: '注意"上"和"入"是动词，表示苔痕向上蔓延、草色映入的动态之美。',
                         },
                         {
-                            id: 3,
-                            type: "comprehension",
+                            id: 3, type: "comprehension",
                             question: "作者用哪些方面来描写陋室的不陋？请结合原文简要分析。",
-                            answer:
-                                '作者从三个方面描写陋室的不陋：一是自然环境优美（"苔痕上阶绿，草色入帘青"）；二是交往之人高雅（"谈笑有鸿儒，往来无白丁"）；三是生活情趣高雅（"可以调素琴，阅金经"）。',
-                            analysis:
-                                "这道题考查对文章内容的理解和概括能力。需要注意从环境、人物、活动三个方面进行归纳。",
+                            answer: '作者从三个方面描写陋室的不陋：一是自然环境优美（"苔痕上阶绿，草色入帘青"）；二是交往之人高雅（"谈笑有鸿儒，往来无白丁"）；三是生活情趣高雅（"可以调素琴，阅金经"）。',
+                            analysis: "这道题考查对文章内容的理解和概括能力。需要注意从环境、人物、活动三个方面进行归纳。",
                         },
                     ],
                 },
@@ -122,9 +117,6 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        return NextResponse.json(
-            { error: "AI service error" },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: "AI service error" }, { status: 500 });
     }
 }
