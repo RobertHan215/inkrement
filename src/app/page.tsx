@@ -57,16 +57,11 @@ export default function HomePage() {
               <div>
                 <p className="text-cyan-100 text-xs">今日训练</p>
                 <p className="text-white text-lg font-semibold mt-0.5">
-                  0 / 4 <span className="text-sm font-normal text-cyan-100">已完成</span>
+                  未完成 <span className="text-sm font-normal text-cyan-100">· 每日一练</span>
                 </p>
               </div>
-              <div className="flex gap-1.5">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="w-2.5 h-2.5 rounded-full bg-white/30"
-                  />
-                ))}
+              <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center">
+                <span className="text-white/60 text-xs">○</span>
               </div>
             </div>
           </div>
