@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
         const passage = await provider.structuredChat(messages, PassageSchema);
 
         return NextResponse.json({ passage });
-    } catch {
+    } catch (error) {
+        console.error("[classical-reading/passage] AI error:", error);
         if (process.env.NODE_ENV === "development") {
             return NextResponse.json({
                 passage: {

@@ -195,31 +195,44 @@ import { prisma } from "../db";
 export async function getProviderForModule(
     module: string
 ): Promise<AIProvider> {
+    // 从环境变量读取 API Key（作为最终 fallback）
+    const envApiKey = process.env.QWEN_API_KEY;
+    const envModel = process.env.QWEN_MODEL || "qwen-max";
+    const envBaseUrl = process.env.QWEN_BASE_URL;
+
     // 先从数据库读取配置
     const config = await prisma.aiConfig.findUnique({
         where: { module },
     });
 
     if (config) {
+        // 如果数据库的 apiKey 是占位符或空值，使用环境变量的 key
+        const apiKey = (config.apiKey && config.apiKey !== "placeholder-key")
+            ? config.apiKey
+            : envApiKey;
+
+        if (!apiKey) {
+            throw new Error(`API key not configured for module: ${module}`);
+        }
+
         return createProvider({
             provider: config.provider as ProviderType,
             modelName: config.modelName,
-            apiKey: config.apiKey,
+            apiKey,
             baseUrl: config.baseUrl ?? undefined,
             temperature: config.temperature,
         });
     }
 
     // 回退到环境变量默认配置
-    const apiKey = process.env.QWEN_API_KEY;
-    if (!apiKey) {
+    if (!envApiKey) {
         throw new Error("QWEN_API_KEY not configured");
     }
 
     return createProvider({
         provider: "qwen",
-        modelName: "qwen-max",
-        apiKey,
-        baseUrl: process.env.QWEN_BASE_URL,
+        modelName: envModel,
+        apiKey: envApiKey,
+        baseUrl: envBaseUrl,
     });
 }
