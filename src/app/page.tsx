@@ -16,7 +16,7 @@ const MODULE_INFO: Record<string, { title: string; subtitle: string; emoji: stri
     subtitle: "经典篇目 · 逐句讲解",
     emoji: "📜",
     href: "/training/classical-reading",
-    gradient: "from-emerald-500 to-green-500",
+    gradient: "from-amber-500 to-orange-500",
   },
   english_writing: {
     title: "英语写作",
@@ -30,7 +30,7 @@ const MODULE_INFO: Record<string, { title: string; subtitle: string; emoji: stri
     subtitle: "阅读理解 · 词汇积累",
     emoji: "📖",
     href: "/training/english-reading",
-    gradient: "from-violet-500 to-purple-500",
+    gradient: "from-emerald-500 to-green-500",
   },
 };
 
@@ -43,17 +43,34 @@ interface TodayPlan {
   latestSubmission: { id: string; score: number; grade: string } | null;
 }
 
+interface Stats {
+  streak: number;
+  weeklyCount: number;
+  wrongCount: number;
+}
+
 export default function HomePage() {
   const [plan, setPlan] = useState<TodayPlan | null>(null);
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stats>({ streak: 0, weeklyCount: 0, wrongCount: 0 });
 
   useEffect(() => {
-    fetch("/api/training/today")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.plan) setPlan(data.plan);
-        if (data.user?.name) setUserName(data.user.name);
+    // 并行加载今日任务和统计数据
+    Promise.all([
+      fetch("/api/training/today").then((r) => r.json()),
+      fetch("/api/training/stats").then((r) => r.json()).catch(() => null),
+    ])
+      .then(([todayData, statsData]) => {
+        if (todayData.plan) setPlan(todayData.plan);
+        if (todayData.user?.name) setUserName(todayData.user.name);
+        if (statsData) {
+          setStats({
+            streak: statsData.streak || 0,
+            weeklyCount: statsData.weeklyCount || 0,
+            wrongCount: statsData.wrongCount || 0,
+          });
+        }
       })
       .catch(() => { })
       .finally(() => setLoading(false));
@@ -122,7 +139,7 @@ export default function HomePage() {
       {/* Module Cards */}
       <section className="px-4 -mt-3 max-w-lg mx-auto">
         <div className="grid grid-cols-2 gap-3">
-          {ALL_MODULES.map(([id, mod], index) => (
+          {ALL_MODULES.map(([id, mod]) => (
             <Link
               key={id}
               href={mod.href}
@@ -146,28 +163,49 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Quick Stats */}
+      {/* Quick Stats — 改为可点击跳转 */}
       <section className="px-4 mt-6 max-w-lg mx-auto">
-        <h2 className="text-sm font-semibold text-text-secondary mb-3 px-1">
-          学习概览
-        </h2>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h2 className="text-sm font-semibold text-text-secondary">
+            学习概览
+          </h2>
+          <Link href="/calendar" className="text-xs text-primary hover:underline">
+            查看日历 →
+          </Link>
+        </div>
         <div className="card p-4">
           <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-2xl font-bold text-primary">0</p>
+            <Link href="/calendar" className="hover:opacity-80 transition-opacity">
+              <p className="text-2xl font-bold text-primary">{stats.streak}</p>
               <p className="text-xs text-text-muted mt-1">连续打卡</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-secondary">
-                {isCompleted ? 1 : 0}
-              </p>
+            </Link>
+            <Link href="/history" className="hover:opacity-80 transition-opacity">
+              <p className="text-2xl font-bold text-secondary">{stats.weeklyCount}</p>
               <p className="text-xs text-text-muted mt-1">本周完成</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-accent">0</p>
+            </Link>
+            <Link href="/mistakes" className="hover:opacity-80 transition-opacity">
+              <p className="text-2xl font-bold text-accent">{stats.wrongCount}</p>
               <p className="text-xs text-text-muted mt-1">错题待复习</p>
-            </div>
+            </Link>
           </div>
+        </div>
+      </section>
+
+      {/* 底部快捷入口 */}
+      <section className="px-4 mt-4 mb-8 max-w-lg mx-auto">
+        <div className="grid grid-cols-3 gap-2">
+          <Link href="/calendar" className="card p-3 text-center hover:shadow-md transition-shadow">
+            <p className="text-xl">📅</p>
+            <p className="text-[11px] text-text-muted mt-1">打卡日历</p>
+          </Link>
+          <Link href="/history" className="card p-3 text-center hover:shadow-md transition-shadow">
+            <p className="text-xl">📋</p>
+            <p className="text-[11px] text-text-muted mt-1">历史记录</p>
+          </Link>
+          <Link href="/mistakes" className="card p-3 text-center hover:shadow-md transition-shadow">
+            <p className="text-xl">📝</p>
+            <p className="text-[11px] text-text-muted mt-1">错题本</p>
+          </Link>
         </div>
       </section>
 
