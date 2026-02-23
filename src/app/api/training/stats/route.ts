@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getStudentId } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -12,9 +12,11 @@ export async function GET(req: NextRequest) {
             (req.nextUrl.searchParams.get("role") as "student" | "parent") ?? "student";
         const user = await getCurrentUser(role);
 
+        const studentId = await getStudentId(user);
+
         // 1. 获取所有已完成的训练计划
         const completedPlans = await prisma.trainingPlan.findMany({
-            where: { studentId: user.id, status: "completed" },
+            where: { studentId, status: "completed" },
             orderBy: { date: "desc" },
             include: {
                 submissions: {
@@ -93,7 +95,7 @@ export async function GET(req: NextRequest) {
 
         // 5. 错题待复习数
         const wrongCount = await prisma.wrongQuestion.count({
-            where: { studentId: user.id, status: "active" },
+            where: { studentId, status: "active" },
         });
 
         return NextResponse.json({

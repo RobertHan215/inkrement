@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getStudentId } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -30,10 +30,12 @@ export async function GET(req: NextRequest) {
         const monthStart = new Date(year, month, 1);
         const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
 
+        const studentId = await getStudentId(user);
+
         // 查询该月所有训练计划
         const plans = await prisma.trainingPlan.findMany({
             where: {
-                studentId: user.id,
+                studentId,
                 date: { gte: monthStart, lte: monthEnd },
             },
             include: {

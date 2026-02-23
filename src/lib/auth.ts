@@ -65,3 +65,22 @@ export function requireRole(user: CurrentUser, ...roles: UserRole[]): void {
         throw new Error(`Access denied. Required roles: ${roles.join(", ")}`);
     }
 }
+
+/**
+ * 获取目标学生 ID
+ * 学生 → 自己的 ID
+ * 家长 → 关联孩子的 ID
+ */
+export async function getStudentId(user: CurrentUser): Promise<string> {
+    if (user.role === "student") return user.id;
+    if (user.role === "parent") {
+        const link = await prisma.parentChild.findFirst({
+            where: { parentId: user.id },
+            select: { studentId: true },
+        });
+        if (!link) throw new Error("No child linked to this parent");
+        return link.studentId;
+    }
+    // admin 也可以看所有学生，未来扩展
+    throw new Error("Cannot resolve student ID for role: " + user.role);
+}

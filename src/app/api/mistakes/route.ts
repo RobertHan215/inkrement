@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getStudentId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -8,13 +8,16 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function GET(req: NextRequest) {
     try {
-        const user = await getCurrentUser("student");
+        const role =
+            (req.nextUrl.searchParams.get("role") as "student" | "parent") ?? "student";
+        const user = await getCurrentUser(role);
+        const studentId = await getStudentId(user);
         const { searchParams } = new URL(req.url);
         const module = searchParams.get("module");
         const status = searchParams.get("status") || "active";
 
         const where: Record<string, unknown> = {
-            studentId: user.id,
+            studentId,
             status,
         };
         if (module) where.module = module;
@@ -28,7 +31,7 @@ export async function GET(req: NextRequest) {
         // 统计各模块错题数
         const stats = await prisma.wrongQuestion.groupBy({
             by: ["module"],
-            where: { studentId: user.id, status: "active" },
+            where: { studentId, status: "active" },
             _count: { id: true },
         });
 

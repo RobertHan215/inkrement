@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getStudentId } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -15,9 +15,10 @@ export async function GET(req: NextRequest) {
         const page = Math.max(1, Number(req.nextUrl.searchParams.get("page")) || 1);
         const pageSize = Math.min(50, Math.max(1, Number(req.nextUrl.searchParams.get("pageSize")) || 10));
         const moduleFilter = req.nextUrl.searchParams.get("module") || "all";
+        const studentId = await getStudentId(user);
 
         const where: Record<string, unknown> = {
-            studentId: user.id,
+            studentId,
             status: "completed",
         };
         if (moduleFilter !== "all") {
