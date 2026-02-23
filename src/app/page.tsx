@@ -191,24 +191,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 底部快捷入口 */}
-      <section className="px-4 mt-4 mb-8 max-w-lg mx-auto">
-        <div className="grid grid-cols-3 gap-2">
-          <Link href="/calendar" className="card p-3 text-center hover:shadow-md transition-shadow">
-            <p className="text-xl">📅</p>
-            <p className="text-[11px] text-text-muted mt-1">打卡日历</p>
-          </Link>
-          <Link href="/history" className="card p-3 text-center hover:shadow-md transition-shadow">
-            <p className="text-xl">📋</p>
-            <p className="text-[11px] text-text-muted mt-1">历史记录</p>
-          </Link>
-          <Link href="/mistakes" className="card p-3 text-center hover:shadow-md transition-shadow">
-            <p className="text-xl">📝</p>
-            <p className="text-[11px] text-text-muted mt-1">错题本</p>
-          </Link>
-        </div>
-      </section>
-
       {/* Dev Mode Indicator */}
       {process.env.NODE_ENV === "development" && (
         <div className="fixed top-2 right-2 bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-mono z-50 opacity-60">
@@ -218,3 +200,4 @@ export default function HomePage() {
     </div>
   );
 }
+
