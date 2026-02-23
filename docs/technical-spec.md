@@ -52,7 +52,7 @@
 | 服务 | 提供方 | 用途 | 免费额度 |
 |------|--------|------|----------|
 | 短信验证码 | 阿里云短信 SMS | 用户注册/登录 | 按量付费，约 ¥0.045/条 |
-| 图片存储 | Cloudflare R2 | 拍照上传作文图片 | 10GB 免费存储 + 免费出站 |
+| 图片存储 | 阿里云 OSS | 拍照上传作文图片 | 新用户有免费试用额度 |
 | AI 模型 | 阿里云百炼 / DeepSeek | 出题 + 批改 | 按 token 计费 |
 | 代码托管 | GitHub | 源码管理 + CI/CD | 免费 |
 
@@ -136,7 +136,7 @@ model Submission {
   planId      String
   studentId   String
   content     String   // 学生提交的文本内容
-  imageUrl    String?  // 拍照上传的图片 URL（R2）
+  imageUrl    String?  // 拍照上传的图片 URL（阿里云 OSS）
   ocrText     String?  // OCR 识别结果
   score       Int?     // 总评分 0-100
   grade       String?  // A | B | C | D
@@ -391,7 +391,7 @@ const ReadingFeedbackSchema = z.object({
 
 | Method | Path | 说明 |
 |--------|------|------|
-| POST | `/api/upload/image` | 拍照上传 → R2 存储 → 返回 URL |
+| POST | `/api/upload/image` | 拍照上传 → 阿里云 OSS 存储 → 返回 URL |
 | POST | `/api/upload/ocr` | 图片 URL → Qwen-VL OCR → 返回文本 |
 
 ---
@@ -485,7 +485,7 @@ const ReadingFeedbackSchema = z.object({
 ```
 1. 用户点击「拍照上传」→ 调用 <input type="file" accept="image/*" capture="camera">
 2. 选择/拍摄照片 → 前端压缩到最大 2MB（使用 browser-image-compression）
-3. 上传到 /api/upload/image → 存入 Cloudflare R2
+3. 上传到 /api/upload/image → 存入阿里云 OSS
 4. 调用 /api/upload/ocr → Qwen-VL 识别文字
 5. 识别结果回显到文本框 → 用户确认/修改
 6. 用户点击「提交」→ 正常批改流程
@@ -523,12 +523,12 @@ QWEN_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 DEEPSEEK_API_KEY=""
 DEEPSEEK_BASE_URL="https://api.deepseek.com/v1"
 
-# Cloudflare R2
-R2_ACCOUNT_ID=""
-R2_ACCESS_KEY_ID=""
-R2_SECRET_ACCESS_KEY=""
-R2_BUCKET_NAME="inkrement-uploads"
-R2_PUBLIC_URL=""                # 公开访问域名
+# 阿里云 OSS（图片存储）
+ALIYUN_OSS_REGION=""                          # 如 oss-cn-shanghai
+ALIYUN_OSS_ACCESS_KEY_ID=""
+ALIYUN_OSS_ACCESS_KEY_SECRET=""
+ALIYUN_OSS_BUCKET="inkrement-uploads"
+ALIYUN_OSS_ENDPOINT=""                        # 如 https://oss-cn-shanghai.aliyuncs.com
 ```
 
 ---
@@ -545,7 +545,7 @@ R2_PUBLIC_URL=""                # 公开访问域名
 - [x] Node.js 版本：20 LTS
 - [x] 认证方案：Phase 1-4 Dev Auth Bypass → Phase 5 NextAuth.js + 短信验证码
 - [x] 短信服务：阿里云短信 SMS（Phase 5 实现）
-- [x] 图片存储：Cloudflare R2
+- [x] 图片存储：阿里云 OSS
 - [x] 部署服务器：阿里云轻量服务器（香港）免备案（Phase 5 部署）
 - [x] 操作系统：Ubuntu 22.04 LTS
 - [x] 进程管理：PM2
