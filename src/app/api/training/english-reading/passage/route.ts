@@ -44,20 +44,16 @@ export async function POST(req: NextRequest) {
         today.setHours(0, 0, 0, 0);
         const MODULE = "english_reading";
 
-        // 1. 查找或创建今日计划
-        let plan = await prisma.trainingPlan.findUnique({
+        // 1. 查找或创建今日计划（upsert 避免竞态冲突）
+        const plan = await prisma.trainingPlan.upsert({
             where: {
                 studentId_date_module: {
                     studentId: user.id, date: today, module: MODULE,
                 },
             },
+            create: { studentId: user.id, date: today, module: MODULE, status: "pending" },
+            update: {},
         });
-
-        if (!plan) {
-            plan = await prisma.trainingPlan.create({
-                data: { studentId: user.id, date: today, module: MODULE, status: "pending" },
-            });
-        }
 
         // 2. 有缓存 → 直接返回
         if (plan.aiContent) {
