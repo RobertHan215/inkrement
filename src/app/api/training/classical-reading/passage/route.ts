@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getProviderForModule } from "@/lib/ai";
 import { getClassicalReadingPrompt } from "@/lib/ai/prompts/classical-reading";
+import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -25,16 +26,49 @@ export type ClassicalPassage = z.infer<typeof PassageSchema>;
 
 /**
  * POST /api/training/classical-reading/passage
- * AI 生成古文阅读篇目 + 题目
+ * AI 生成古文阅读篇目 + 题目（带每日缓存）
  */
 export async function POST(req: NextRequest) {
     try {
         const user = await getCurrentUser("student");
         const grade = user.grade || "预初";
 
+        // 1. 查找今日计划，检查是否有缓存
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const plan = await prisma.trainingPlan.findUnique({
+            where: {
+                studentId_date_module: {
+                    studentId: user.id,
+                    date: today,
+                    module: "classical_reading",
+                },
+            },
+        });
+
+        // 2. 有缓存 → 直接返回
+        if (plan?.aiContent) {
+            try {
+                const cached = JSON.parse(plan.aiContent);
+                return NextResponse.json({ passage: cached, cached: true });
+            } catch {
+                // 缓存解析失败，继续走 AI 生成
+            }
+        }
+
+        // 3. 调用 AI 生成
         const provider = await getProviderForModule("classical_reading");
         const messages = getClassicalReadingPrompt(grade);
         const passage = await provider.structuredChat(messages, PassageSchema);
+
+        // 4. 存入 DB 缓存
+        if (plan) {
+            await prisma.trainingPlan.update({
+                where: { id: plan.id },
+                data: { aiContent: JSON.stringify(passage) },
+            });
+        }
 
         return NextResponse.json({ passage });
     } catch (error) {

@@ -1,7 +1,7 @@
-import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getProviderForModule } from "@/lib/ai";
 import { getChineseWritingTopicPrompt } from "@/lib/ai/prompts/chinese-writing";
+import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -20,7 +20,7 @@ export type WritingTopic = z.infer<typeof TopicSchema>;
 
 /**
  * POST /api/training/chinese-writing/topic
- * AI 生成今日写作题目
+ * AI 生成今日写作题目（带每日缓存）
  */
 export async function POST(req: NextRequest) {
     try {
@@ -29,13 +29,47 @@ export async function POST(req: NextRequest) {
         const user = await getCurrentUser(role);
         const grade = user.grade || "预初";
 
+        // 1. 查找今日计划，检查是否有缓存
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const plan = await prisma.trainingPlan.findUnique({
+            where: {
+                studentId_date_module: {
+                    studentId: user.id,
+                    date: today,
+                    module: "chinese_writing",
+                },
+            },
+        });
+
+        // 2. 有缓存 → 直接返回
+        if (plan?.aiContent) {
+            try {
+                const cached = JSON.parse(plan.aiContent);
+                return NextResponse.json({ topic: cached, cached: true });
+            } catch {
+                // 缓存解析失败，继续走 AI 生成
+            }
+        }
+
+        // 3. 调用 AI 生成
         const provider = await getProviderForModule("chinese_writing");
         const messages = getChineseWritingTopicPrompt(grade);
         const topic = await provider.structuredChat(messages, TopicSchema);
 
+        // 4. 存入 DB 缓存
+        if (plan) {
+            await prisma.trainingPlan.update({
+                where: { id: plan.id },
+                data: { aiContent: JSON.stringify(topic) },
+            });
+        }
+
         return NextResponse.json({ topic });
     } catch (error) {
         // 如果 AI 调用失败，返回一个默认题目（开发模式降级）
+        console.error("[chinese-writing/topic] AI error:", error);
         if (process.env.NODE_ENV === "development") {
             return NextResponse.json({
                 topic: {

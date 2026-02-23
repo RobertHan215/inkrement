@@ -46,6 +46,7 @@ model TrainingPlan {
   date      DateTime
   module    String   // chinese_writing | classical_reading | english_writing | english_reading
   status    String   @default("pending") // pending | in_progress | completed | skipped
+  aiContent String?  // AI 生成的题目内容 JSON（缓存，避免重复调用 AI）
   createdAt DateTime @default(now())
 
   student     User         @relation(fields: [studentId], references: [id])
