@@ -21,41 +21,41 @@
 
 ### 1.1 项目初始化
 
-- [ ] 使用 `create-next-app` 初始化 Next.js 15 + TypeScript + Tailwind CSS + pnpm
+- [x] 使用 `create-next-app` 初始化 Next.js 15 + TypeScript + Tailwind CSS + pnpm
 - [ ] 安装并配置 shadcn/ui 组件库
-- [ ] 配置 ESLint + Prettier
-- [ ] 配置 `.env` 模板（`.env.example`）
+- [x] 配置 ESLint
+- [x] 配置 `.env` 模板（`.env.example`）
 
 ### 1.2 数据库
 
-- [ ] 创建 Prisma Schema（按 Tech Spec 第三章）
-- [ ] 执行数据库迁移（`prisma db push`）
-- [ ] 编写 Prisma Client 封装（`src/lib/db.ts`）
-- [ ] Seed 脚本：创建测试用户（1 学生 + 1 家长 + 1 管理员）
+- [x] 创建 Prisma Schema（按 Tech Spec 第三章）
+- [x] 执行数据库迁移（`prisma db push`）
+- [x] 编写 Prisma Client 封装（`src/lib/db.ts`）
+- [x] Seed 脚本：创建测试用户（1 学生 + 1 家长 + 1 管理员）
 
 ### 1.3 本地开发认证（临时方案）
 
-- [ ] 实现 Dev Auth Bypass：本地自动以 Seed 学生用户身份登录，无需短信
-- [ ] `src/lib/auth.ts` 提供 `getCurrentUser()` 方法，开发模式返回 Seed 用户
+- [x] 实现 Dev Auth Bypass：本地自动以 Seed 学生用户身份登录，无需短信
+- [x] `src/lib/auth.ts` 提供 `getCurrentUser()` 方法，开发模式返回 Seed 用户
 - [ ] 路由守卫 Middleware 判断 `NODE_ENV`，开发环境跳过认证
 
 ### 1.4 AI 抽象层
 
-- [ ] 实现 `AIProvider` 接口
-- [ ] 实现 `QwenProvider`（文本 + 结构化输出）
-- [ ] 实现 `QwenVLProvider`（视觉识别）
-- [ ] Prompt 模板目录结构 + 第一个写作批改 Prompt
+- [x] 实现 `AIProvider` 接口
+- [x] 实现 `QwenProvider`（文本 + 结构化输出）
+- [x] 实现 `QwenVLProvider`（视觉识别）
+- [x] Prompt 模板目录结构 + 第一个写作批改 Prompt
 
 ### 1.5 基础 UI
 
-- [ ] 全局布局组件（Header + 底部导航栏 + 页面容器）
-- [ ] 设计色系 Token（Tailwind 配色方案）
-- [ ] 移动端适配基础验证
+- [x] 全局布局组件（Header + 底部导航栏 + 页面容器）
+- [x] 设计色系 Token（Tailwind 配色方案）
+- [x] 移动端适配基础验证
 
 ### Phase 1 完成标记
 
-- [ ] 本地 `pnpm dev` 可正常运行，页面可渲染
-- [ ] 自动以测试用户身份进入系统
+- [x] 本地 `pnpm dev` 可正常运行，页面可渲染
+- [x] 自动以测试用户身份进入系统
 - [ ] AI Provider 测试脚本可成功调用 Qwen API
 
 ---

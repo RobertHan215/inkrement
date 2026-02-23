@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===== 用户系统 =====
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  role      String   // student | parent | admin
+  grade     String?  // 预初 | 初一 | 初二 | 初三
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trainingPlans  TrainingPlan[]
+  submissions    Submission[]
+  wrongQuestions WrongQuestion[]
+  parentLinks    ParentChild[]   @relation("parent")
+  childLinks     ParentChild[]   @relation("child")
+}
+
+model ParentChild {
+  id         String @id @default(cuid())
+  parentId   String
+  studentId  String
+  inviteCode String @unique
+
+  parent  User @relation("parent", fields: [parentId], references: [id])
+  student User @relation("child", fields: [studentId], references: [id])
+
+  @@unique([parentId, studentId])
+}
+
+// ===== 训练计划 =====
+
+model TrainingPlan {
+  id        String   @id @default(cuid())
+  studentId String
+  date      DateTime
+  module    String   // chinese_writing | classical_reading | english_writing | english_reading
+  status    String   @default("pending") // pending | in_progress | completed | skipped
+  createdAt DateTime @default(now())
+
+  student     User         @relation(fields: [studentId], references: [id])
+  submissions Submission[]
+
+  @@unique([studentId, date, module])
+}
+
+// ===== 提交记录（支持多版本） =====
+
+model Submission {
+  id        String   @id @default(cuid())
+  planId    String
+  studentId String
+  content   String
+  imageUrl  String?
+  ocrText   String?
+  score     Int?
+  grade     String?
+  feedback  String?  // AI 批改结果 JSON
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+
+  plan    TrainingPlan @relation(fields: [planId], references: [id])
+  student User         @relation(fields: [studentId], references: [id])
+}
+
+// ===== 错题本 =====
+
+model WrongQuestion {
+  id                 String    @id @default(cuid())
+  studentId          String
+  module             String
+  questionContent    String
+  studentAnswer      String?
+  correctAnswer      String?
+  analysis           String?
+  errorCount         Int       @default(1)
+  consecutiveCorrect Int       @default(0)
+  status             String    @default("active") // active | archived
+  lastPracticedAt    DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  student User @relation(fields: [studentId], references: [id])
+}
+
+// ===== 古文篇目库 =====
+
+model ClassicText {
+  id          String   @id @default(cuid())
+  title       String
+  author      String
+  dynasty     String
+  content     String
+  translation String
+  notes       String   // 重点字词注释 JSON
+  difficulty  Int      // 1-5
+  gradeLevel  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ===== AI 模型配置 =====
+
+model AiConfig {
+  id          String   @id @default(cuid())
+  module      String   @unique
+  provider    String   // qwen | deepseek | glm
+  modelName   String
+  apiKey      String
+  baseUrl     String?
+  temperature Float    @default(0.7)
+  updatedAt   DateTime @updatedAt
+}
+
+// ===== 短信验证码 =====
+
+model SmsCode {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone, code])
+}
