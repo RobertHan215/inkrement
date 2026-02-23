@@ -80,7 +80,7 @@ export default function HomePage() {
           </div>
 
           {/* 今日任务卡片 */}
-          <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 mt-4">
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 mt-4 min-h-[68px]">
             {loading ? (
               <div className="h-12 flex items-center justify-center">
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -126,8 +126,7 @@ export default function HomePage() {
             <Link
               key={id}
               href={mod.href}
-              className="card p-4 flex flex-col gap-3 animate-fade-in"
-              style={{ animationDelay: `${index * 80}ms` }}
+              className="card p-4 flex flex-col gap-3"
             >
               <div
                 className={`w-12 h-12 rounded-xl bg-gradient-to-br ${mod.gradient} flex items-center justify-center text-2xl shadow-sm`}
